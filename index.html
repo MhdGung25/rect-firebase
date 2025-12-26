@@ -1,13 +1,52 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Basic -->
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>react-firebase-portfolio</title>
+    <title>DIGITAL NOTES</title>
+
+    <!-- Favicon / Logo -->
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+
+    <!-- SEO -->
+    <meta
+      name="description"
+      content="Personal portfolio built with React, Tailwind CSS, and Firebase Authentication."
+    />
+    <meta
+      name="keywords"
+      content="React, Firebase, Tailwind CSS, Portfolio, Web Developer"
+    />
+    <meta name="author" content="Muhammad Agung Pamungkas" />
+
+    <!-- Open Graph (Social Preview) -->
+    <meta property="og:title" content="Agung • React Firebase Portfolio" />
+    <meta
+      property="og:description"
+      content="Modern portfolio with authentication using React, Tailwind, and Firebase."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/logo.png" />
+    <meta property="og:url" content="http://localhost:5173" />
+
+    <!-- Google Font (Clean & Modern) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Theme Color (mobile browser) -->
+    <meta name="theme-color" content="#020617" />
   </head>
-  <body>
+
+  <body class="bg-slate-950 text-white antialiased">
     <div id="root"></div>
+
+    <!-- Vite Entry -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
