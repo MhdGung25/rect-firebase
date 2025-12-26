@@ -263,14 +263,26 @@ export default function Dashboard() {
                       {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
 
-                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                      <button 
-                        onClick={() => startEdit(n)} 
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? "bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white" : "bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white"}`}
-                        title="Edit"
+                   <div
+                    className="
+                      flex gap-2
+                      opacity-100 translate-x-0
+                      md:opacity-0 md:group-hover:opacity-100
+                      md:translate-x-4 md:group-hover:translate-x-0
+                      transition-all
+                    "
+                  >
+                      <button
+                        onClick={() => startEdit(n)}
+                        className={`w-11 h-11 md:w-10 md:h-10 rounded-xl flex items-center justify-center transition-all active:scale-95 ${
+                          isDarkMode
+                            ? "bg-blue-500/20 text-blue-400 md:bg-blue-500/10 md:hover:bg-blue-500 md:hover:text-white"
+                            : "bg-blue-100 text-blue-600 md:bg-blue-50 md:hover:bg-blue-600 md:hover:text-white"
+                        }`}
                       >
                         ✏️
                       </button>
+
                       <button 
                         onClick={() => deleteNote(n.id)} 
                         className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:scale-110 ${isDarkMode ? "bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white" : "bg-red-50 text-red-600 hover:bg-red-600 hover:text-white"}`}
