@@ -13,6 +13,9 @@ export default function Dashboard() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const nav = useNavigate();
+  const [error, setError] = useState("");
+  const [shake, setShake] = useState(false);
+
 
   const getUserName = () => {
     if (currentUser?.displayName) return currentUser.displayName;
@@ -49,31 +52,41 @@ export default function Dashboard() {
 
   // Fungsi Tambah & Edit Catatan
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!text.trim() || !currentUser) return;
+  e.preventDefault();
 
-    try {
-      if (editId) {
-        // Mode Edit
-        await updateDoc(doc(db, "notes", editId), {
-          text: text.trim(),
-          updatedAt: Date.now(),
-        });
-        setEditId(null);
-      } else {
-        // Mode Tambah Baru
-        await addDoc(collection(db, "notes"), {
-          uid: currentUser.uid,
-          text: text.trim(),
-          createdAt: Date.now(),
-        });
-      }
-      setText("");
-    } catch (err) {
-      console.error("Error:", err);
-      alert("Terjadi kesalahan. Cek koneksi atau Index Firestore.");
+  if (!text.trim()) {
+    setError("Catatan tidak boleh kosong");
+    setShake(true);
+
+    setTimeout(() => setShake(false), 400);
+    return;
+  }
+
+  if (!currentUser) return;
+
+  try {
+    if (editId) {
+      await updateDoc(doc(db, "notes", editId), {
+        text: text.trim(),
+        updatedAt: Date.now(),
+      });
+      setEditId(null);
+    } else {
+      await addDoc(collection(db, "notes"), {
+        uid: currentUser.uid,
+        text: text.trim(),
+        createdAt: Date.now(),
+      });
     }
-  };
+
+    setText("");
+    setError("");
+  } catch (err) {
+    console.error(err);
+    alert("Terjadi kesalahan");
+  }
+};
+
 
   const startEdit = (note) => {
     setEditId(note.id);
@@ -173,31 +186,50 @@ export default function Dashboard() {
 
         {/* Input Form Mewah */}
         <form onSubmit={handleSubmit} className="mb-16 group">
-          <div className={`p-2 rounded-[2rem] transition-all duration-500 border ${isDarkMode ? "bg-slate-900/40 border-white/10 group-focus-within:border-blue-500/50 shadow-2xl" : "bg-white border-slate-200 shadow-xl shadow-slate-200/50"}`}>
-            <div className="relative flex flex-col md:flex-row gap-2">
-              <input 
-                value={text} 
-                onChange={e => setText(e.target.value)} 
-                placeholder={editId ? "Edit catatanmu..." : "Apa yang kamu pikirkan hari ini?"} 
-                className={`flex-1 bg-transparent px-6 py-5 focus:outline-none text-lg font-medium ${isDarkMode ? "text-white placeholder-slate-600" : "text-slate-900 placeholder-slate-400"}`}
-              />
-              <div className="flex p-1 gap-2">
-                {editId && (
-                  <button 
-                    type="button"
-                    onClick={() => {setEditId(null); setText("");}}
-                    className="px-6 py-4 rounded-2xl bg-slate-500/20 text-slate-400 font-bold hover:bg-slate-500/30 transition-all"
-                  >
-                    Batal
-                  </button>
-                )}
-                <button type="submit" className={`px-10 py-4 rounded-2xl font-bold text-white transition-all active:scale-95 shadow-lg ${editId ? "bg-indigo-600 shadow-indigo-500/30" : "bg-blue-600 shadow-blue-500/30"}`}>
-                  {editId ? "Update" : "Simpan"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </form>
+  <div
+    className={`p-2 rounded-[2rem] border transition-all duration-500
+    ${shake ? "animate-shake border-red-500/50" : ""}
+    ${isDarkMode
+      ? "bg-slate-900/40 border-white/10 focus-within:border-blue-500/50"
+      : "bg-white border-slate-200"
+    }`}
+  >
+    <div className="flex flex-col md:flex-row gap-2">
+      <input
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          setError("");
+        }}
+        placeholder={editId ? "Edit catatanmu..." : "Apa yang kamu pikirkan hari ini?"}
+        className={`flex-1 bg-transparent px-6 py-5 text-lg font-medium focus:outline-none
+        ${isDarkMode
+          ? "text-white placeholder-slate-600"
+          : "text-slate-900 placeholder-slate-400"
+        }`}
+      />
+
+      <button
+        type="submit"
+        className={`px-10 py-4 rounded-2xl font-bold text-white transition-all active:scale-95
+        ${editId
+          ? "bg-indigo-600 shadow-indigo-500/30"
+          : "bg-blue-600 shadow-blue-500/30"
+        }`}
+      >
+        {editId ? "Update" : "Simpan"}
+      </button>
+    </div>
+  </div>
+
+  {/* ERROR MESSAGE */}
+  {error && (
+    <p className="mt-3 text-sm text-red-500 animate-in fade-in slide-in-from-top-2">
+      ⚠️ {error}
+    </p>
+  )}
+</form>
+
 
         {/* Notes Grid */}
         <div className="grid gap-6">
