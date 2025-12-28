@@ -1,99 +1,90 @@
-import { useState } from "react";
-import { auth } from "../firebase";
-import { Link, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import React from "react";
+import { FiHome, FiBarChart2, FiStar, FiSettings } from "react-icons/fi";
+import { FaBook } from "react-icons/fa"; // Logo tambahan
 
-export default function Sidebar() {
-  const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
+const Sidebar = ({ activeTab, setActiveTab }) => {
+  const menus = [
+    { id: "home", label: "Dashboard", icon: <FiHome /> },
+    { id: "favorites", label: "Favorit", icon: <FiStar /> },
+    { id: "stats", label: "Statistik", icon: <FiBarChart2 /> },
+    { id: "settings", label: "Pengaturan", icon: <FiSettings /> },
+  ];
 
   return (
     <>
-      {/* Tombol Hamburger - Muncul di HP */}
-      <motion.button 
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-5 left-5 z-[70] md:hidden bg-[#7B61FF] p-3 rounded-2xl shadow-lg text-white"
-      >
-        {isOpen ? "✕" : "☰"}
-      </motion.button>
+      {/* ================= DESKTOP SIDEBAR ================= */}
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 p-6 z-50 transition-colors duration-300">
+        <div className="flex flex-col h-full w-full">
+          {/* BRAND LOGO */}
+          <div className="flex items-center gap-2 px-4 mb-10">
+            <FaBook className="text-indigo-600 dark:text-indigo-400 text-2xl" />
+            <h1 className="text-xl font-black text-indigo-600 dark:text-indigo-400 tracking-tight">
+              CATATAN<span className="text-slate-800 dark:text-white">KU</span>
+            </h1>
+          </div>
 
-      {/* Overlay Gelap untuk Mobile */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-black/50 z-[50] md:hidden backdrop-blur-sm"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar Utama */}
-      <aside className={`
-        w-64 bg-[#7B61FF] text-white flex flex-col p-6 fixed h-full z-[60] shadow-2xl transition-transform duration-500 ease-in-out
-        ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0
-      `}>
-        
-        {/* Logo Aplikasi */}
-        <div className="flex items-center gap-3 mb-12">
-          <motion.div 
-            whileHover={{ scale: 1.2, rotate: 10 }}
-            className="bg-white/20 p-2 rounded-xl text-xl"
-          >
-            📝
-          </motion.div>
-          <h1 className="text-xl font-black tracking-tighter uppercase italic">NoteFlow</h1>
-        </div>
-
-        {/* Menu Navigasi */}
-        <nav className="flex-1 space-y-2">
-          <Link to="/dashboard" onClick={() => setIsOpen(false)}>
-            <NavItem icon="🏠" label="Overview" active={location.pathname === "/dashboard"} />
-          </Link>
-          <Link to="/notes" onClick={() => setIsOpen(false)}>
-            <NavItem icon="📚" label="Semua Catatan" active={location.pathname === "/notes"} />
-          </Link>
-          <Link to="/favorites" onClick={() => setIsOpen(false)}>
-            <NavItem icon="⭐" label="Favorit" active={location.pathname === "/favorites"} />
-          </Link>
-
-          {/* Menambahkan Menu Pengaturan sebagai pengganti Logout di Sidebar */}
-          <Link to="/settings" onClick={() => setIsOpen(false)}>
-            <NavItem icon="⚙️" label="Pengaturan" active={location.pathname === "/settings"} />
-          </Link>
-        </nav>
-
-        {/* Bagian bawah dikosongkan karena Logout pindah ke Settings */}
-        <div className="mt-auto pt-6 border-t border-white/10 text-[10px] text-white/40 font-bold uppercase tracking-widest text-center">
-          v1.0.0 Stable
+          {/* NAV MENU */}
+          <div className="flex flex-col gap-2">
+            {menus.map((menu) => {
+              const isActive = activeTab === menu.id;
+              return (
+                <button
+                  key={menu.id}
+                  onClick={() => setActiveTab(menu.id)}
+                  className={`
+                    flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200
+                    ${isActive
+                      ? "bg-indigo-500 text-white shadow-lg shadow-indigo-200 dark:shadow-none"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-600"
+                    }
+                  `}
+                >
+                  <span className="text-xl">{menu.icon}</span>
+                  {menu.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </aside>
+
+      {/* ================= MOBILE/TABLET TOP LOGO ================= */}
+      <div className="md:hidden fixed top-0 inset-x-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-center py-2">
+        <FaBook className="text-indigo-600 dark:text-indigo-400 text-2xl mr-2" />
+        <h1 className="text-lg font-black text-indigo-600 dark:text-indigo-400 tracking-tight">
+          CATATAN<span className="text-slate-800 dark:text-white">KU</span>
+        </h1>
+      </div>
+
+      {/* ================= MOBILE BOTTOM NAV ================= */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 transition-colors duration-300">
+        <ul className="flex justify-around items-center py-2">
+          {menus.map((menu) => {
+            const isActive = activeTab === menu.id;
+            return (
+              <li key={menu.id} className="flex-1">
+                <button
+                  onClick={() => setActiveTab(menu.id)}
+                  className={`
+                    w-full flex flex-col items-center gap-1 py-1 transition-all duration-200
+                    ${isActive
+                      ? "text-indigo-600 dark:text-indigo-400 scale-110"
+                      : "text-slate-400 dark:text-slate-500"
+                    }
+                  `}
+                >
+                  <span className="text-2xl">{menu.icon}</span>
+                  <span className="text-[9px] font-black uppercase tracking-tighter">
+                    {menu.label}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
     </>
   );
-}
+};
 
-function NavItem({ icon, label, active = false }) {
-  return (
-    <motion.div 
-      whileHover={{ x: 5 }}
-      className={`flex items-center gap-4 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-300 ${
-        active 
-        ? "bg-white text-[#7B61FF] font-black shadow-lg" 
-        : "hover:bg-white/10 opacity-70"
-      }`}
-    >
-      <span className="text-lg">{icon}</span>
-      <span className="text-sm tracking-wide">{label}</span>
-      
-      {active && (
-        <motion.div 
-          layoutId="activeTab"
-          className="ml-auto w-1.5 h-1.5 bg-[#7B61FF] rounded-full" 
-        />
-      )}
-    </motion.div>
-  );
-}
+export default Sidebar;

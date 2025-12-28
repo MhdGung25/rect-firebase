@@ -1,61 +1,59 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+import Dashboard from "./pages/Dashboard";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import Settings from "./pages/Settings";
-import Notes from './pages/Notes';
-import Favorites from './pages/Favorites';
+import { useState } from "react";
 
-export default function App() {
-  // Nama aplikasi default diubah menjadi tema Catatan
-  const [namaWarung, setNamaWarung] = useState("My Digital Notes");
+function App() {
+  const { user, loading } = useAuth();
+  const [namaWarung, setNamaWarung] = useState("Catatan Digital");
 
-  // Efek untuk memuat nama judul yang disimpan user
-  useEffect(() => {
-    const savedNama = localStorage.getItem('namaWarung');
-    if (savedNama) {
-      // Memperbaiki bug: menambahkan setNamaWarung yang hilang sebelumnya
-      (savedNama);
-    }
-  }, []);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Halaman Login & Registrasi */}
-        <Route path="/" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        
-        {/* Halaman Utama Dashboard */}
-        <Route 
-          path="/dashboard" 
-          element={<Dashboard namaWarung={namaWarung} />} 
-        />
+    <Routes>
+      {/* LOGIN */}
+      <Route
+        path="/login"
+        element={!user ? <Login /> : <Navigate to="/dashboard" replace />}
+      />
 
-        {/* Halaman Semua Catatan */}
-        <Route 
-          path="/notes" 
-          element={<Notes namaWarung={namaWarung} />} 
-        />
+      {/* REGISTER */}
+      <Route
+        path="/register"
+        element={!user ? <Register /> : <Navigate to="/dashboard" replace />}
+      />
 
-        {/* Halaman Catatan Favorit */}
-        <Route 
-          path="/favorites" 
-          element={<Favorites namaWarung={namaWarung} />} 
-        />
-
-        {/* Halaman Pengaturan (Bisa ubah judul catatan) */}
-        <Route 
-          path="/settings" 
-          element={
-            <Settings 
-              namaWarung={namaWarung} 
-              setNamaWarung={setNamaWarung} 
+      {/* DASHBOARD (PROTECTED) */}
+      <Route
+        path="/dashboard"
+        element={
+          user ? (
+            <Dashboard
+              user={user}
+              namaWarung={namaWarung}
+              setNamaWarung={setNamaWarung}
             />
-          } 
-        />
-      </Routes>
-    </BrowserRouter>
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+
+      {/* ROOT */}
+      <Route
+        path="/"
+        element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
+      />
+    </Routes>
   );
 }
+
+export default App;
