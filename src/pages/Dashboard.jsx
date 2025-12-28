@@ -1,47 +1,38 @@
-import { collection, addDoc, onSnapshot, query, where, orderBy, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, where, orderBy, doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signOut, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
+import { motion } from "framer-motion";
 
-export default function Dashboard() {
+import Sidebar from "../components/Sidebar";
+import Header from "../components/Header";
+import StatCard from "../components/StatCard";
+
+export default function Dashboard({ namaWarung }) {
   const [notes, setNotes] = useState([]);
-  const [text, setText] = useState("");
-  const [editId, setEditId] = useState(null); // Untuk tracking catatan yang diedit
-  const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [loading, setLoading] = useState(true);
   const nav = useNavigate();
-  const [error, setError] = useState("");
-  const [shake, setShake] = useState(false);
-
-
-  const getUserName = () => {
-    if (currentUser?.displayName) return currentUser.displayName;
-    if (currentUser?.email) return currentUser.email.split("@")[0];
-    return "User";
-  };
 
   useEffect(() => {
     const authUnsub = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrentUser(user);
         const q = query(
-          collection(db, "notes"),
-          where("uid", "==", user.uid),
+          collection(db, "notes"), 
+          where("userId", "==", user.uid), 
           orderBy("createdAt", "desc")
         );
 
         const snapUnsub = onSnapshot(q, (snapshot) => {
-          const notesData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-          setNotes(notesData);
-          setLoading(false);
-        }, (error) => {
-          console.error("Firestore Error:", error);
+          setNotes(snapshot.docs.map(d => ({ 
+            id: d.id, 
+            ...d.data(),
+            createdAt: d.data().createdAt?.toDate() 
+          })));
           setLoading(false);
         });
-
         return () => snapUnsub();
       } else {
         nav("/");
@@ -50,205 +41,126 @@ export default function Dashboard() {
     return () => authUnsub();
   }, [nav]);
 
-  // Fungsi Tambah & Edit Catatan
-  const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  if (!text.trim()) {
-    setError("Catatan tidak boleh kosong");
-    setShake(true);
-
-    setTimeout(() => setShake(false), 400);
-    return;
-  }
-
-  if (!currentUser) return;
-
-  try {
-    if (editId) {
-      await updateDoc(doc(db, "notes", editId), {
-        text: text.trim(),
-        updatedAt: Date.now(),
-      });
-      setEditId(null);
-    } else {
-      await addDoc(collection(db, "notes"), {
-        uid: currentUser.uid,
-        text: text.trim(),
-        createdAt: Date.now(),
-      });
-    }
-
-    setText("");
-    setError("");
-  } catch (err) {
-    console.error(err);
-    alert("Terjadi kesalahan");
-  }
-};
-
-
-  const startEdit = (note) => {
-    setEditId(note.id);
-    setText(note.text);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const deleteNote = async (noteId) => {
-  if (window.confirm("Hapus catatan ini selamanya?")) {
+  const toggleFavorite = async (note) => {
     try {
-      await deleteDoc(doc(db, "notes", noteId));
+      const noteRef = doc(db, "notes", note.id);
+      await updateDoc(noteRef, {
+        isFavorite: !note.isFavorite
+      });
     } catch (err) {
-      console.error("Gagal menghapus catatan:", err);
-      alert("Gagal menghapus catatan");
+      console.error("Error updating favorite: ", err);
     }
-  }
-};
-
-
-  const confirmLogout = async () => {
-    await signOut(auth);
-    nav("/");
   };
+
+  const getUserName = () => currentUser?.displayName || currentUser?.email?.split("@")[0] || "User";
 
   return (
-    <div className={`min-h-screen transition-colors duration-700 ${isDarkMode ? "bg-[#050b18] text-slate-200" : "bg-[#f8fafc] text-slate-900"}`}>
-      
-      {/* Background Decor */}
-      <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
-        <div className={`absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-20 ${isDarkMode ? "bg-blue-600" : "bg-blue-300"}`}></div>
-        <div className={`absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full blur-[120px] opacity-20 ${isDarkMode ? "bg-purple-600" : "bg-purple-300"}`}></div>
-      </div>
+    <div className="flex min-h-screen bg-[#F4F7FE] font-sans">
+      <Sidebar />
 
-      {/* Navbar Modern */}
-      <nav className={`sticky top-0 z-50 backdrop-blur-xl border-b transition-all ${isDarkMode ? "bg-[#050b18]/80 border-white/5" : "bg-white/80 border-slate-200 shadow-sm"}`}>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
-          {/* BRAND */}
-          <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-lg object-contain" />
-            <h1 className="text-sm sm:text-xl font-black tracking-tight uppercase">
-              Digital <span className="text-blue-500">Notes</span>
-            </h1>
-          </div>
+      {/* Penambahan md:ml-64 agar konten tidak tertutup sidebar di laptop */}
+      <main className="flex-1 md:ml-64 p-5 md:p-8 transition-all duration-300">
+        <Header userName={getUserName()} namaWarung={namaWarung} />
 
-          {/* ACTIONS */}
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${isDarkMode ? "bg-slate-800 text-yellow-400" : "bg-white text-slate-600 shadow-sm border border-slate-100"}`}
-            >
-              {isDarkMode ? "✨" : "🌙"}
-            </button>
-            <button
-              onClick={() => setIsLogoutModalOpen(true)}
-              className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs sm:text-sm font-bold shadow-lg shadow-red-500/20 active:scale-95"
-            >
-              Logout
-            </button>
+        {/* WELCOME SECTION - Responsive layout */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"
+        >
+          <div>
+            <h2 className="text-2xl md:text-3xl font-black text-[#1B2559]">Halo, {getUserName()}! 👋</h2>
+            <p className="text-[#A3AED0] font-medium text-sm md:text-base">Berikut adalah ringkasan catatan digital Anda hari ini.</p>
           </div>
-        </div>
-      </nav>
+          <button 
+            onClick={() => nav("/notes")}
+            className="w-full md:w-auto bg-[#7B61FF] text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-purple-100 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            <span>Buka Semua Catatan</span>
+            <span>📚</span>
+          </button>
+        </motion.div>
 
-      <main className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        {/* Header Section */}
-        <div className="mb-8 sm:mb-12 space-y-2">
-          <div className="inline-block px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-[10px] font-bold uppercase tracking-widest">
-              Workspace Aktif
-          </div>
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tight break-words">
-            Hi, <span className="bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">{getUserName()}!</span>
-          </h2>
-          <p className="text-slate-500 text-sm sm:text-base font-medium">Jangan biarkan ide hebatmu menguap begitu saja.</p>
+        {/* STATS AREA - Grid responsif (1 kolom di HP, 2 di Tablet, 4 di Laptop) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+          <StatCard title="Total Catatan" value={notes.length} sub="Semua Data" icon="📁" />
+          <StatCard title="Favorit" value={notes.filter(n => n.isFavorite).length} sub="Tersemat" icon="⭐" />
+          <StatCard title="Minggu Ini" value={notes.filter(n => {
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            return n.createdAt > weekAgo;
+          }).length} sub="Update Terbaru" icon="📈" />
+          <StatCard title="Cloud Sync" value="Aktif" sub="Terhubung" icon="☁️" />
         </div>
 
-        {/* Input Form */}
-        <form onSubmit={handleSubmit} className="mb-10 sm:mb-16">
-          <div className={`p-2 rounded-2xl sm:rounded-[2rem] border transition-all duration-500 ${shake ? "animate-shake border-red-500/50" : ""} ${isDarkMode ? "bg-slate-900/40 border-white/10 focus-within:border-blue-500/50" : "bg-white border-slate-200 shadow-sm"}`}>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                value={text}
-                onChange={(e) => { setText(e.target.value); setError(""); }}
-                placeholder={editId ? "Edit catatan..." : "Apa yang kamu pikirkan?"}
-                className={`flex-1 bg-transparent px-4 py-4 sm:px-6 sm:py-5 text-base sm:text-lg font-medium focus:outline-none ${isDarkMode ? "text-white placeholder-slate-600" : "text-slate-900 placeholder-slate-400"}`}
-              />
-              <button
-                type="submit"
-                className={`w-full sm:w-auto px-8 py-4 rounded-xl sm:rounded-2xl font-bold text-white transition-all active:scale-95 ${editId ? "bg-indigo-600" : "bg-blue-600"}`}
-              >
-                {editId ? "Update" : "Simpan"}
-              </button>
-            </div>
+        {/* RIWAYAT TERBARU */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-50"
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg md:text-xl font-black text-[#1B2559]">Riwayat Terkini</h3>
+            <span className="text-[9px] md:text-[10px] font-black text-[#7B61FF] uppercase tracking-widest bg-purple-50 px-3 py-1 rounded-full">
+              5 Terbaru
+            </span>
           </div>
-          {error && <p className="mt-3 text-xs sm:text-sm text-red-500">⚠️ {error}</p>}
-        </form>
-
-        {/* Notes Grid */}
-        <div className="grid gap-4 sm:gap-6">
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <div className="w-10 h-10 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
-            </div>
-          ) : notes.length === 0 ? (
-            <div className="text-center py-16 bg-slate-500/5 rounded-3xl border border-dashed border-slate-500/20">
-              <span className="text-3xl block mb-2">📝</span>
-              <p className="text-slate-500 text-sm italic">Belum ada catatan.</p>
-            </div>
-          ) : (
-            notes.map((n) => (
-              <div 
-                key={n.id} 
-                className={`group relative p-5 sm:p-8 rounded-3xl border transition-all duration-300 ${isDarkMode ? "bg-slate-900/40 border-white/5 shadow-xl" : "bg-white border-slate-100 shadow-md"}`}
-              >
-                <div className="flex flex-col gap-4">
-                  {/* Teks Catatan dengan word-break */}
-                  <p className={`text-base sm:text-lg leading-relaxed font-medium whitespace-pre-wrap break-words overflow-hidden ${isDarkMode ? "text-slate-200" : "text-slate-700"}`}>
-                    {n.text}
-                  </p>
-                  
-                  <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                    <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                      {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </span>
-
-                    {/* Button Container: Selalu muncul di Mobile, Hover di Desktop */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => startEdit(n)}
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${isDarkMode ? "bg-blue-500/20 text-blue-400" : "bg-blue-50 text-blue-600 border border-blue-100"}`}
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        onClick={() => deleteNote(n.id)} 
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${isDarkMode ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600 border border-red-100"}`}
-                      >
-                        🗑️
-                      </button>
+          
+          <div className="space-y-3">
+            {loading ? (
+              <div className="text-center py-10 space-y-3">
+                <div className="animate-spin text-2xl inline-block">⏳</div>
+                <p className="text-slate-400 font-medium">Sinkronisasi data...</p>
+              </div>
+            ) : notes.length === 0 ? (
+              <div className="text-center py-12 md:py-16 bg-slate-50 rounded-[1.5rem] md:rounded-[2rem] border-2 border-dashed border-slate-100">
+                <p className="text-[#A3AED0] font-bold text-sm">Belum ada catatan digital.</p>
+                <button 
+                  onClick={() => nav("/notes")}
+                  className="mt-2 text-[#7B61FF] font-black text-[10px] md:text-xs uppercase hover:underline"
+                >
+                  Mulai Menulis Sekarang
+                </button>
+              </div>
+            ) : (
+              notes.slice(0, 5).map((note, index) => (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  key={note.id} 
+                  className="flex items-center justify-between p-4 md:p-5 border border-slate-50 hover:border-purple-100 hover:bg-slate-50/50 transition-all rounded-[1.2rem] md:rounded-[1.5rem] group"
+                >
+                  <div className="flex items-center gap-3 md:gap-4 flex-1">
+                    <button 
+                      onClick={() => toggleFavorite(note)}
+                      className={`text-lg md:text-xl transition-all ${note.isFavorite ? 'grayscale-0 scale-110' : 'grayscale opacity-20 hover:opacity-100 hover:grayscale-0'}`}
+                    >
+                      ⭐
+                    </button>
+                    <div className="overflow-hidden">
+                      <p className="text-[#1B2559] font-black text-xs md:text-sm truncate">{note.title}</p>
+                      <p className="text-[10px] md:text-xs text-[#A3AED0] line-clamp-1 italic">"{note.content}"</p>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </main>
-
-      {/* MODAL LOGOUT */}
-      {isLogoutModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/60">
-          <div className={`w-full max-w-sm p-8 sm:p-10 rounded-[2.5rem] shadow-2xl border ${isDarkMode ? "bg-[#0f172a] border-white/10" : "bg-white border-slate-200"}`}>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center text-2xl mx-auto mb-4">🚪</div>
-              <h3 className={`text-xl sm:text-2xl font-black ${isDarkMode ? "text-white" : "text-slate-900"}`}>Siap Berhenti?</h3>
-              <p className="text-sm text-slate-500">Sesi kamu akan diakhiri sekarang.</p>
-            </div>
-            <div className="flex flex-col gap-3 mt-8">
-              <button onClick={confirmLogout} className="w-full py-4 rounded-2xl bg-red-500 text-white font-bold shadow-lg shadow-red-500/20 active:scale-95">Keluar Sekarang</button>
-              <button onClick={() => setIsLogoutModalOpen(false)} className="w-full py-4 rounded-2xl bg-slate-500/10 text-slate-400 font-bold active:scale-95">Nanti Saja</button>
-            </div>
+                  <div className="text-right ml-2 min-w-[60px]">
+                    <p className="text-[8px] md:text-[9px] font-black text-slate-300 uppercase tracking-tighter">
+                      {note.createdAt?.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                    </p>
+                    <p className="text-[8px] md:text-[9px] text-slate-300 font-bold uppercase">
+                      {note.createdAt?.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
-        </div>
-      )}
+        </motion.div>
+
+        <p className="mt-8 text-center text-[#A3AED0] text-[8px] md:text-[10px] font-bold uppercase tracking-[0.3em]">
+          NoteFlow Dashboard System
+        </p>
+      </main>
     </div>
   );
 }
